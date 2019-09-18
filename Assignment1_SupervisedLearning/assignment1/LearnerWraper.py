@@ -7,15 +7,16 @@ from sklearn.model_selection import cross_val_score, GridSearchCV, cross_validat
 from sklearn import tree
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.svm import SVC
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import AdaBoostClassifier
 from sklearn.preprocessing import StandardScaler, normalize
+from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
 
 ######################################### Reading and Cleaning the Data ###############################################
-# data resource: https://archive.ics.uci.edu/ml/datasets/Online+Shoppers+Purchasing+Intention+Dataset
+# data resource1: https://archive.ics.uci.edu/ml/datasets/Online+Shoppers+Purchasing+Intention+Dataset
 data1 = pd.read_csv('online_shoppers_intention.csv')
 
 #Data cleaning: categorical data must be encoded in ML method like: Linear regression, SVM, Neural network.
@@ -30,7 +31,7 @@ x_data1 = data1.loc[:, data1.columns != "Revenue"]
 y_data1 = data1.loc[:, "Revenue"]
 print("after-cleaning data", data1.head())
 
-# data resource: https://archive.ics.uci.edu/ml/datasets/default+of+credit+card+clients
+# data resource2: https://archive.ics.uci.edu/ml/datasets/default+of+credit+card+clients
 data2 = pd.read_excel("default_of_credit_card_clients.xls", skiprows=[1], index_col= 0)
 print("before-cleaning data2\n", data2.head())
 
@@ -39,14 +40,47 @@ x_data2 = data2.loc[:, data2.columns != "Y"]
 y_data2 = data2.loc[:, "Y"]
 #print("before-cleaning data2", data2.head())
 
+
+
+# ############################################### Helper Functions ###################################################
 # The random state to use while splitting the data.
 random_state = 100
 
-# ############################################### Decision Tree ###################################################
-# Split i% of the data into training and 1-i% into test sets. Call them x_train, x_test, y_train and y_test.
+####Split i% of the data into training and 1-i% into test sets. #######
 # Use the train_test_split method in sklearn with the parameter 'shuffle' set to true and the 'random_state' set to 100.
+def splitData(xdata, ydata, trainsize):
+     xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size = trainsize, random_state=random_state)
+     return xTrain, xTest, yTrain, yTest
+
+####### Plot: train size vs accuracy #############
+# call after iteration is done and get data list
+def plotAccuray_TrainSize(TrainResult,TestResult):
+    xrange = np.arange(0.1,1.0, 0.1)
+    #axes = plt.gca() #"get the current axes"
+    #axes.set_ylim([0,1.2]) # set current axes:
+    plt.plot(xrange,TrainResult, xrange, TestResult)
+    plt.show()
+
+####### experiment: iteration for n time, each time, use change train size ####
+def experiment(n, f):
+    TrainResult1 = []
+    TestResult1 = []
+    TrainResult2 = []
+    TestResult2 = []
+    for i in range(1, n):
+        a = i / n
+        print("SVM Training ", a)
+        trainScore1, testScore1 = f(x_data1, y_data1, a)
+        TrainResult1.append(trainScore1)
+        TestResult1.append(testScore1)
+        trainScore2, testScore2 = f(x_data2, y_data2, a)
+        TrainResult2.append(trainScore2)
+        TestResult2.append(testScore2)
+    return TrainResult1, TestResult1, TrainResult2, TestResult2
+
+# ############################################### Decision Tree ###################################################
 def DTLearner(xdata, ydata, trainsize):
-    xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size=trainsize, random_state=random_state)
+    xTrain, xTest, yTrain, yTest =  splitData(xdata, ydata, trainsize)
     # Create a DT classifier and train it.
     DecisionTree = tree.DecisionTreeClassifier()
     DecisionTree.fit(xTrain, yTrain)
@@ -59,32 +93,10 @@ def DTLearner(xdata, ydata, trainsize):
     print('testScoret', testScore)
     return trainScore, testScore
 
-# ############################################### Decision Tree Experiment with 2 data_sets ###################################################
-DT_TrainResult1 = []
-DT_TestResult1 = []
-DT_TrainResult2 = []
-DT_TestResult2 = []
-for i in range(1 ,10):
-    a = i /10
-    print("DT Training, with train_size = ", a)
-    trainScore1, testScore1 = DTLearner(x_data1,y_data1, a)
-    DT_TrainResult1.append(trainScore1)
-    DT_TestResult1.append(testScore1)
-    trainScore2, testScore2 = DTLearner(x_data2, y_data2, a)
-    DT_TrainResult2.append(trainScore2)
-    DT_TestResult2.append(testScore2)
-
-
-# ################### Decision Tree Plot: train size vs accuracy #############
-xrange = np.arange(0.1,1.0, 0.1)
-axes = plt.gca() #"get the current axes"
-axes.set_ylim([0,1.2]) # set current axes:
-plt.plot(xrange,DT_TrainResult1, xrange, DT_TestResult1)
-plt.show()
-axes = plt.gca() #"get the current axes"
-axes.set_ylim([0,1.2]) # set current axes:
-plt.plot(xrange,DT_TrainResult2, xrange, DT_TestResult2)
-plt.show()
+# ############################################### Decision Tree Experiment with 2 data_sets & plot ###################################################
+DT_TrainResult1, DT_TestResult1, DT_TrainResult2, DT_TestResult2 = experiment(10, DTLearner)
+plotAccuray_TrainSize(DT_TrainResult1, DT_TestResult1)
+plotAccuray_TrainSize(DT_TrainResult2, DT_TestResult2)
 
 
 
@@ -104,29 +116,50 @@ def SVMLearner(xdata, ydata, trainsize):
     print('SVM: trainScore', trainScore)
     print('SVM: testScoret', testScore)
     return trainScore, testScore
-# ############################################ Support Vector Machine Experiment with 2 dataset ###################################################
-SVM_TrainResult1 = []
-SVM_TestResult1 = []
-SVM_TrainResult2 = []
-SVM_TestResult2 = []
-for i in range(1 ,10):
-    a = i /10
-    print("SVM Training ", a)
-    trainScore1, testScore1 = SVMLearner(x_data1,y_data1, a)
-    SVM_TrainResult1.append(trainScore1)
-    SVM_TestResult1.append(testScore1)
-    trainScore2, testScore2 = SVMLearner(x_data2, y_data2, a)
-    SVM_TrainResult2.append(trainScore2)
-    SVM_TestResult2.append(testScore2)
+# ###################################### Support Vector Machine Experiment with 2 dataset & plot ############################################
+# SVM_TrainResult1,SVM_TestResult1,SVM_TrainResult2,SVM_TestResult2 = experiment(10, SVMLearner)
+# plotAccuray_TrainSize(SVM_TrainResult1, SVM_TestResult1)
+# plotAccuray_TrainSize(SVM_TrainResult2, SVM_TestResult2)
 
 
-# ################### SVM Plot: train size vs accuracy #############
-xrange = np.arange(0.1,1.0, 0.1)
-axes = plt.gca() #"get the current axes"
-axes.set_ylim([0,1.2]) # set current axes:
-plt.plot(xrange,SVM_TrainResult1, xrange, SVM_TestResult1)
-plt.show()
-axes = plt.gca() #"get the current axes"
-axes.set_ylim([0,1.2]) # set current axes:
-plt.plot(xrange,SVM_TrainResult2, xrange, SVM_TestResult2)
-plt.show()
+# ############################################### K Nearest Neighbor(KNN) ###################################################
+def KNNLearner(xdata, ydata, trainsize, k=3):
+    xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size=trainsize, random_state=random_state)
+    knn = KNeighborsClassifier(n_neighbors= k).fit(xTrain, yTrain)
+    trainScore = accuracy_score(yTrain, knn.predict(xTrain).round())
+    testScore = accuracy_score(yTest, knn.predict(xTest).round())
+    print('KNN: trainScore', trainScore)
+    print('KNN: testScoret', testScore)
+    return trainScore, testScore
+# ###################################### KNN Experiment with 2 dataset & plot ############################################
+# knn_TrainResult1, knn_TestResult1, knn_TrainResult2, knn_TestResult2 = experiment(10, KNNLearner)
+# plotAccuray_TrainSize(knn_TrainResult1, knn_TestResult1)
+# plotAccuray_TrainSize(knn_TrainResult2, knn_TestResult2)
+
+# ############################################### Boosting: AdaBoost ###################################################
+def BoostLearner(xdata, ydata, trainsize):
+    xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size=trainsize, random_state=random_state)
+    adb = AdaBoostClassifier(base_estimator= None).fit(xTrain, yTrain) #default is decision tree
+    trainScore = accuracy_score(yTrain, adb.predict(xTrain).round())
+    testScore = accuracy_score(yTest, adb.predict(xTest).round())
+    print('Boosting: trainScore', trainScore)
+    print('Boosting: testScoret', testScore)
+    return trainScore, testScore
+# ###################################### Boosting Experiment with 2 dataset & plot ############################################
+# boost_TrainResult1, boost_TestResult1, boost_TrainResult2, boost_TestResult2 = experiment(10, BoostLearner)
+# plotAccuray_TrainSize(boost_TrainResult1, boost_TestResult1)
+# plotAccuray_TrainSize(boost_TrainResult2, boost_TestResult2)
+
+# ############################################### Neural Network #######################################################
+def NeuralNetworkLearner(xdata, ydata, trainsize):
+    xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size=trainsize, random_state=random_state)
+    nn = MLPClassifier(activation = 'logistic', solver = 'sgd', hidden_layer_sizes=(10,15), learning_rate_init= 0.001).fit(xTrain, yTrain) #training time cooresponding to hidden layer size
+    trainScore = accuracy_score(yTrain, nn.predict(xTrain).round())
+    testScore = accuracy_score(yTest, nn.predict(xTest).round())
+    print('Neural Network: trainScore', trainScore)
+    print('Neural Network: testScoret', testScore)
+    return trainScore, testScore
+# ###################################### Neural Network Experiment with 2 dataset & plot ############################################
+# nn_TrainResult1, nn_TestResult1, nn_TrainResult2, nn_TestResult2 = experiment(10, NeuralNetworkLearner)
+# plotAccuray_TrainSize(nn_TrainResult1, nn_TestResult1)
+# plotAccuray_TrainSize(nn_TrainResult2, nn_TestResult2)
