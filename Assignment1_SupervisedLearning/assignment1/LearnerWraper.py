@@ -49,25 +49,12 @@ random_state = 100
 
 #######Split i% of the data into training and 1-i% into test sets. #######
 # Use the train_test_split method in sklearn with the parameter 'shuffle' set to true and the 'random_state' set to 100.
-def splitData(xdata, ydata, trainsize):
-     xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size = trainsize, random_state=random_state)
+def fixedsplitData(xdata, ydata):
+     xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size = 0.7, random_state=random_state)
      return xTrain, xTest, yTrain, yTest
 
-######### Plot: train size vs accuracy #############
-# call after iteration is done and get data list
-def plotAccuray_TrainSize(TrainResult1,TestResult1, TrainResult2,TestResult2,plotname):
-    xrange = np.arange(0.01,1.0, 0.01)
-    plt.plot(xrange, TrainResult1, label="TrainAccuracy-Dataset1")
-    plt.plot(xrange, TestResult1, label="TestAccuracy-Dataset1")
-    plt.plot(xrange, TrainResult2, label="TrainAccuracy-Dataset2")
-    plt.plot(xrange, TestResult2, label="TestAccuracy-Dataset2")
-    plt.legend()
-    plt.title("Accuracy Score of " + str(plotname))
-    plt.savefig("Accuracy Score of " + str(plotname) + ".png")
-    plt.show()
-
-######### experiment: iteration for n time, each time, use change train size ########
-def experiment(n, f):
+######### experiment_size: iteration for n time, each time, use change train size ########
+def experiment_size(n, f):
     TrainResult1 = []
     TestResult1 = []
     TrainResult2 = []
@@ -88,6 +75,59 @@ def experiment(n, f):
     print("\n")
     return TrainResult1, TestResult1, TrainResult2, TestResult2
 
+######### experiment_parameter: iteration for n time, each time, change parameter########
+def experiment_parameter(n, f):
+    xTrain1, xTest1, yTrain1, yTest1= fixedsplitData(x_data1, y_data1)
+    xTrain2, xTest2, yTrain2, yTest2= fixedsplitData(x_data2, y_data2)
+    TrainResult_parameter1 = []
+    TestResult_parameter1 = []
+    TrainResult_parameter2 = []
+    TestResult_parameter2 = []
+    for i in range(1, n):
+        print("parameter = ", i)
+        trainScore1, testScore1 = f(xTrain1, xTest1, yTrain1, yTest1, i)
+        TrainResult_parameter1.append(trainScore1)
+        TestResult_parameter1.append(testScore1)
+        trainScore2, testScore2 = f(xTrain2, xTest2, yTrain2, yTest2, i)
+        TrainResult_parameter2.append(trainScore2)
+        TestResult_parameter2.append(testScore2)
+    print("TrainResult_parameter1 =", TrainResult_parameter1)
+    print("TestResult_parameter1 =", TestResult_parameter1)
+    print("TrainResult_parameter2 =", TrainResult_parameter2)
+    print("TestResult_parameter2=", TestResult_parameter2)
+    print("\n")
+    return TrainResult_parameter1, TestResult_parameter1, TrainResult_parameter2, TestResult_parameter2
+
+
+######### Plot: train size vs accuracy #############
+# call after iteration is done and get data list
+def plotAccuray_TrainSize(TrainResult1,TestResult1, TrainResult2,TestResult2,plotname, parameter_name):
+    xrange = np.arange(0.01,1.0, 0.01)
+    plt.plot(xrange, TrainResult1, label="TrainAccuracy-Dataset1")
+    plt.plot(xrange, TestResult1, label="TestAccuracy-Dataset1")
+    plt.plot(xrange, TrainResult2, label="TrainAccuracy-Dataset2")
+    plt.plot(xrange, TestResult2, label="TestAccuracy-Dataset2")
+    plt.legend()
+    plt.xlabel(parameter_name)
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy Score of " + str(plotname))
+    plt.savefig("Accuracy Score of " + str(plotname) + ".png")
+    plt.show()
+
+def plotAccuray_parameter(TrainResult1,TestResult1, TrainResult2,TestResult2,plotname, parameter_name, n):
+    xrange = np.arange(1,n)
+    plt.plot(xrange, TrainResult1, label="TrainAccuracy-Dataset1")
+    plt.plot(xrange, TestResult1, label="TestAccuracy-Dataset1")
+    plt.plot(xrange, TrainResult2, label="TrainAccuracy-Dataset2")
+    plt.plot(xrange, TestResult2, label="TestAccuracy-Dataset2")
+    plt.legend()
+    plt.xlabel(parameter_name)
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy Score of " + str(plotname))
+    plt.savefig("Accuracy Score of " + str(plotname) + ".png")
+    plt.show()
+
+
 ################ cross validation ##############
 def crossValidation(clasifier):
     return
@@ -96,10 +136,16 @@ def crossValidation(clasifier):
 def DTLearner(xdata, ydata, trainsize):
     xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size=trainsize, random_state=random_state)
     # Create a DT classifier and train it.
-    dt = DecisionTree = tree.DecisionTreeClassifier().fit(xTrain, yTrain)
-    # Test its accuracy (on the training set) using the accuracy_score method.
-    # Test its accuracy (on the testing set) using the accuracy_score method.
+    dt = tree.DecisionTreeClassifier().fit(xTrain, yTrain)
     # Note: Round the output values greater than or equal to 0.5 to 1 and those less than 0.5 to 0. You can use y_predict.round() or any other method.
+    trainScore = accuracy_score(yTrain, dt.predict(xTrain).round())
+    testScore = accuracy_score(yTest, dt.predict(xTest).round())
+    print('trainScore', trainScore)
+    print('testScoret', testScore)
+    return trainScore, testScore
+def DTLearner_parameter(xTrain, xTest, yTrain, yTest, p):
+    # Create a DT classifier and train it.
+    dt = tree.DecisionTreeClassifier(max_depth = p).fit(xTrain, yTrain)
     trainScore = accuracy_score(yTrain, dt.predict(xTrain).round())
     testScore = accuracy_score(yTest, dt.predict(xTest).round())
     print('trainScore', trainScore)
@@ -107,15 +153,15 @@ def DTLearner(xdata, ydata, trainsize):
     return trainScore, testScore
 
 # ############################################### Decision Tree Experiment with 2 data_sets & plot ###################################################
-DT_TrainResult1, DT_TestResult1, DT_TrainResult2, DT_TestResult2 = experiment(100, DTLearner)
-plotAccuray_TrainSize(DT_TrainResult1, DT_TestResult1,DT_TrainResult2, DT_TestResult2, "DecisionTree")
-
-
+# DT_TrainResult1, DT_TestResult1, DT_TrainResult2, DT_TestResult2 = experiment_size(100, DTLearner)
+# plotAccuray_TrainSize(DT_TrainResult1, DT_TestResult1,DT_TrainResult2, DT_TestResult2, "DecisionTree(TrainingSize)", "Training size(1%~99%)")
+# DT_TrainResult_p1, DT_TestResult_p1, DT_TrainResult_p2, DT_TestResult_p2 = experiment_parameter(100, DTLearner_parameter)
+# plotAccuray_parameter(DT_TrainResult_p1, DT_TestResult_p1,DT_TrainResult_p2, DT_TestResult_p2, "DecisionTree(parameter)", "Parameter:max_depth", 100)
 
 # ############################################ Support Vector Machine ###################################################
 # XXX
-# TODO: Pre-process the data to standardize or normalize it, otherwise the grid search will take much longer
-# TODO: Create a SVC classifier and train it.
+# Pre-process the data to standardize or normalize it, otherwise the grid search will take much longer
+# Create a SVC classifier and train it.
 # XXX
 def SVMLearner(xdata, ydata, trainsize):
     xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size=trainsize, random_state=random_state)
@@ -128,9 +174,25 @@ def SVMLearner(xdata, ydata, trainsize):
     print('SVM: trainScore', trainScore)
     print('SVM: testScoret', testScore)
     return trainScore, testScore
+
+def SVMLearner_parameter(xTrain, xTest, yTrain, yTest, p):
+    if(p > 4):
+        return
+    kernelList= ['rbf','linear', 'poly', 'sigmoid']
+    s = StandardScaler().fit(xTrain)
+    xTrainSVC = s.transform(xTrain)
+    xTestSVC = s.transform(xTest)
+    svc = SVC(kernel= kernelList[p-1]).fit(xTrainSVC, yTrain)
+    trainScore = accuracy_score(yTrain, svc.predict(xTrainSVC).round())
+    testScore = accuracy_score(yTest, svc.predict(xTestSVC).round())
+    print('SVM: trainScore', trainScore)
+    print('SVM: testScoret', testScore)
+    return trainScore, testScore
 # ###################################### Support Vector Machine Experiment with 2 dataset & plot ############################################
-# SVM_TrainResult1,SVM_TestResult1,SVM_TrainResult2,SVM_TestResult2 = experiment(100, SVMLearner)
-# plotAccuray_TrainSize(SVM_TrainResult1, SVM_TestResult1,SVM_TrainResult2, SVM_TestResult2, "SVM")
+# SVM_TrainResult1,SVM_TestResult1,SVM_TrainResult2,SVM_TestResult2 = experiment_size(100, SVMLearner)
+# plotAccuray_TrainSize(SVM_TrainResult1, SVM_TestResult1,SVM_TrainResult2, SVM_TestResult2, "SVM", "Training size(1%~99%)")
+# SVM_TrainResult_p1,SVM_TestResult_p1,SVM_TrainResult_p2,SVM_TestResult_p2 = experiment_parameter(5, SVMLearner_parameter)
+# plotAccuray_parameter(SVM_TrainResult_p1,SVM_TestResult_p1,SVM_TrainResult_p2,SVM_TestResult_p2, "SVM(parameter)", "Parameter: kernal ", 5)
 
 
 
@@ -143,22 +205,41 @@ def KNNLearner(xdata, ydata, trainsize, k=3):
     print('KNN: trainScore', trainScore)
     print('KNN: testScoret', testScore)
     return trainScore, testScore
+
+def KNNLearner_parameter(xTrain, xTest, yTrain, yTest, p):
+    knn = KNeighborsClassifier(n_neighbors= p).fit(xTrain, yTrain)
+    trainScore = accuracy_score(yTrain, knn.predict(xTrain).round())
+    testScore = accuracy_score(yTest, knn.predict(xTest).round())
+    print('KNN: trainScore', trainScore)
+    print('KNN: testScoret', testScore)
+    return trainScore, testScore
 # ###################################### KNN Experiment with 2 dataset & plot ############################################
-# knn_TrainResult1, knn_TestResult1, knn_TrainResult2, knn_TestResult2 = experiment(100, KNNLearner)
-# plotAccuray_TrainSize(knn_TrainResult1, knn_TestResult1,knn_TrainResult2, knn_TestResult2, "KNN")
+# knn_TrainResult1, knn_TestResult1, knn_TrainResult2, knn_TestResult2 = experiment_size(100, KNNLearner)
+# plotAccuray_TrainSize(knn_TrainResult1, knn_TestResult1,knn_TrainResult2, knn_TestResult2, "KNN",  "Training size(1%~99%)")
+# knn_TrainResult_p1, knn_TestResult_p1, knn_TrainResult_p2, knn_TestResult_p2 = experiment_parameter(15, KNNLearner_parameter)
+# plotAccuray_parameter(knn_TrainResult_p1, knn_TestResult_p1, knn_TrainResult_p2, knn_TestResult_p2, "KNN(parameter)", "Parameter: k", 15)
 
 # ############################################### Boosting: AdaBoost ###################################################
 def BoostLearner(xdata, ydata, trainsize):
     xTrain, xTest, yTrain, yTest = train_test_split(xdata, ydata, train_size=trainsize, random_state=random_state)
-    adb = AdaBoostClassifier(base_estimator= None).fit(xTrain, yTrain) #default is decision tree
+    adb = AdaBoostClassifier(base_estimator= None).fit(xTrain, yTrain) #default is decision tree, n_estimators  = 50
+    trainScore = accuracy_score(yTrain, adb.predict(xTrain).round())
+    testScore = accuracy_score(yTest, adb.predict(xTest).round())
+    print('Boosting: trainScore', trainScore)
+    print('Boosting: testScoret', testScore)
+    return trainScore, testScore
+def BoostLearner_paramter(xTrain, xTest, yTrain, yTest, p):
+    adb = AdaBoostClassifier(n_estimators = p).fit(xTrain, yTrain) #default is decision tree
     trainScore = accuracy_score(yTrain, adb.predict(xTrain).round())
     testScore = accuracy_score(yTest, adb.predict(xTest).round())
     print('Boosting: trainScore', trainScore)
     print('Boosting: testScoret', testScore)
     return trainScore, testScore
 # ###################################### Boosting Experiment with 2 dataset & plot ############################################
-# boost_TrainResult1, boost_TestResult1, boost_TrainResult2, boost_TestResult2 = experiment(100, BoostLearner)
-# plotAccuray_TrainSize(boost_TrainResult1, boost_TestResult1, boost_TrainResult2, boost_TestResult2, "Boosting")
+# boost_TrainResult1, boost_TestResult1, boost_TrainResult2, boost_TestResult2 = experiment_size(100, BoostLearner)
+# plotAccuray_TrainSize(boost_TrainResult1, boost_TestResult1, boost_TrainResult2, boost_TestResult2, "Boosting", "Training size(1%~99%)")
+# boost_TrainResult_p1, boost_TestResult_p1, boost_TrainResult_p2, boost_TestResult_p2 = experiment_parameter(100, BoostLearner_paramter)
+# plotAccuray_parameter(boost_TrainResult_p1, boost_TestResult_p1, boost_TrainResult_p2, boost_TestResult_p2, "Boosting(parameter)", "Parameter: k", 100)
 
 
 # ############################################### Neural Network #######################################################
@@ -170,9 +251,22 @@ def NeuralNetworkLearner(xdata, ydata, trainsize):
     print('Neural Network: trainScore', trainScore)
     print('Neural Network: testScoret', testScore)
     return trainScore, testScore
+
+def NeuralNetworkLearner_parameter(xTrain, xTest, yTrain, yTest, p):
+    hiddenlayer = tuple(100 for i in range(0,p))
+    nn = MLPClassifier(activation = 'logistic', solver = 'sgd', hidden_layer_sizes=hiddenlayer, learning_rate_init= 0.001).fit(xTrain, yTrain) #training time cooresponding to hidden layer size
+    trainScore = accuracy_score(yTrain, nn.predict(xTrain).round())
+    testScore = accuracy_score(yTest, nn.predict(xTest).round())
+    print('Neural Network: trainScore', trainScore)
+    print('Neural Network: testScoret', testScore)
+    return trainScore, testScore
 # ###################################### Neural Network Experiment with 2 dataset & plot ############################################
-# nn_TrainResult1, nn_TestResult1, nn_TrainResult2, nn_TestResult2 = experiment(100, NeuralNetworkLearner)
-# plotAccuray_TrainSize(nn_TrainResult1, nn_TestResult1,nn_TrainResult2, nn_TestResult2,  "Neural Network")
+# nn_TrainResult1, nn_TestResult1, nn_TrainResult2, nn_TestResult2 = experiment_size(100, NeuralNetworkLearner)
+# plotAccuray_TrainSize(nn_TrainResult1, nn_TestResult1,nn_TrainResult2, nn_TestResult2,  "Neural Network", "Training size(1%~99%)")
+# nn_TrainResult1, nn_TestResult1, nn_TrainResult2, nn_TestResult2 = experiment_parameter(10, NeuralNetworkLearner_parameter)
+# plotAccuray_parameter(nn_TrainResult1, nn_TestResult1,nn_TrainResult2, nn_TestResult2,  "Neural Network(parameter)","Parameter: hidden layer", 10)
+
+
 
 # ###################################### Confusion Matrix: after determining the best size ###########################################
 # DT_TrainResult1= [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
