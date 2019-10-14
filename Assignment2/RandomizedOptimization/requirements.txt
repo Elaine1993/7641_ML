@@ -1,0 +1,16 @@
+cycler==0.10.0
+decorator==4.4.0
+joblib==0.14.0
+kiwisolver==1.1.0
+matplotlib==3.1.1
+-e git://github.com/hiive/mlrose@4b86206023adb0580f484bde1d9bd53661f134fb#egg=mlrose_hiive
+networkx==2.3
+numpy==1.17.2
+pandas==0.25.1
+pyparsing==2.4.2
+python-dateutil==2.8.0
+pytz==2019.3
+scikit-learn==0.21.3
+scipy==1.3.1
+six==1.12.0
+xlrd==1.2.0
