@@ -1,6 +1,6 @@
 cycler==0.10.0
 decorator==4.4.0
-joblib==0.14.0
+joblib==1.2.0
 kiwisolver==1.1.0
 matplotlib==3.1.1
 -e git://github.com/hiive/mlrose@4b86206023adb0580f484bde1d9bd53661f134fb#egg=mlrose_hiive
